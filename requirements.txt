@@ -1,7 +1,8 @@
 flask
 openai
-wikipedia
 feedparser
+wikipedia
 newspaper3k
-python-dotenv
 gunicorn
+python-dotenv
+lxml[html_clean]
