@@ -1,64 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Daily Predictions</title>
     <meta charset="UTF-8">
+    <title>Daily AI Forecasts</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f9f9f9;
-            margin: 40px;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: #f2f2f2;
+            color: #333;
         }
-        h1 {
+
+        header {
+            background-color: #111827;
+            color: #ffffff;
+            padding: 20px 0;
             text-align: center;
-            color: #222;
         }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
         .field-btn {
-            padding: 12px 20px;
-            margin: 8px;
-            background-color: #0066cc;
+            background-color: #2563eb;
             color: white;
+            padding: 12px 18px;
+            margin: 8px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 16px;
+            transition: background 0.2s;
         }
+
         .field-btn:hover {
-            background-color: #004a99;
+            background-color: #1e40af;
         }
+
         .result {
-            margin-top: 30px;
             background: white;
+            border-radius: 10px;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
+
         .result h2 {
+            font-size: 24px;
             margin-bottom: 10px;
-            color: #444;
+            color: #1e3a8a;
+        }
+
+        .result p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            color: #777;
+        }
+
+        @media (max-width: 600px) {
+            .field-btn {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Click a Field to View AI Forecast</h1>
-    <div id="buttons">
-        {% for field in fields %}
-            <button class="field-btn" onclick="getPrediction('{{ field }}')">{{ field }}</button>
-        {% endfor %}
+    <header>
+        <h1>Daily AI Forecasts</h1>
+        <p style="margin-top: 5px;">Click on a field to get specific predictions</p>
+    </header>
+
+    <div class="container">
+        <div class="buttons">
+            {% for field in fields %}
+                <button class="field-btn" onclick="getPrediction('{{ field }}')">{{ field }}</button>
+            {% endfor %}
+        </div>
+
+        <div id="predictionResult" class="result">
+            <p>Select a category to see today's forecast.</p>
+        </div>
     </div>
-    <div id="predictionResult" class="result"></div>
+
+    <footer>
+        &copy; 2025 AI Forecasts. Powered by OpenAI.
+    </footer>
 
     <script>
         function getPrediction(topic) {
             const resultDiv = document.getElementById("predictionResult");
-            resultDiv.innerHTML = `<p><strong>Generating forecast for ${topic}...</strong></p>`;
+            resultDiv.innerHTML = `<p><strong>Loading prediction for ${topic}...</strong></p>`;
             fetch("/predict/" + encodeURIComponent(topic))
                 .then(res => res.json())
                 .then(data => {
                     if (data.prediction) {
-                        resultDiv.innerHTML = `<h2>${topic}</h2><p>${data.prediction.replace(/\n/g, "<br><br>")}</p>`;
+                        resultDiv.innerHTML = `<h2>${topic}</h2><p>${data.prediction.replace(/\n/g, "<br>")}</p>`;
                     } else {
-                        resultDiv.innerHTML = "<p>Prediction failed to load.</p>";
+                        resultDiv.innerHTML = "<p>Error loading prediction.</p>";
                     }
                 })
                 .catch(() => {
