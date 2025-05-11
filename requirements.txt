@@ -1,8 +1,7 @@
-Flask
+flask
 openai
 wikipedia
-requests
 feedparser
 newspaper3k
 python-dotenv
-lxml_html_clean
+gunicorn
