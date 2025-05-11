@@ -1,109 +1,36 @@
-import os
-from flask import Flask, request, jsonify
-from openai import OpenAI
-import wikipedia
-import random
-import feedparser
-from newspaper import Article
+from flask import Flask, render_template import os import wikipedia import random import feedparser from newspaper import Article from openai import OpenAI from datetime import datetime
 
-app = Flask(__name__)
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+app = Flask(name) client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def get_google_news_articles(topic, max_articles=3):
-    query = topic.replace(" ", "+")
-    rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN"
-    feed = feedparser.parse(rss_url)
+TOPICS = [ "politics", "sports", "health", "economy", "technology", "weather", "education", "business", "fashion", "entertainment", "stock market" ]
 
-    full_texts = ""
-    count = 0
+def get_news_articles(topic, max_articles=2): query = topic.replace(" ", "+") rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN" feed = feedparser.parse(rss_url)
 
-    for entry in feed.entries:
-        url = entry.link
-        try:
-            article = Article(url)
-            article.download()
-            article.parse()
-            full_texts += f"TITLE: {article.title}\n{article.text}\n\n"
-            count += 1
-        except:
-            continue
-        if count >= max_articles:
-            break
-
-    return full_texts if full_texts else "No full articles found."
-
-def get_wikipedia_info(topic):
+text = ""
+count = 0
+for entry in feed.entries:
     try:
-        summary = wikipedia.summary(topic, sentences=5)
-    except wikipedia.exceptions.DisambiguationError as e:
-        try:
-            summary = wikipedia.summary(e.options[0], sentences=5)
-        except:
-            summary = "No clear Wikipedia summary available."
-    except wikipedia.exceptions.PageError:
-        results = wikipedia.search(topic)
-        if results:
-            try:
-                summary = wikipedia.summary(results[0], sentences=5)
-            except:
-                summary = "No Wikipedia summary found."
-        else:
-            summary = "No Wikipedia page found."
-    return summary
+        article = Article(entry.link)
+        article.download()
+        article.parse()
+        text += f"TITLE: {article.title}\n{article.text}\n\n"
+        count += 1
+    except:
+        continue
+    if count >= max_articles:
+        break
+return text if text else "No news found."
 
-def get_astrology_insight():
-    templates = [
-        "Mars influence indicates a period of aggressive decision-making and bold innovation.",
-        "Saturn alignment may trigger delays in execution and increased regulatory scrutiny.",
-        "Mercury retrograde could affect communications and tech stability temporarily.",
-        "Lunar phases suggest rising public sentiment and emotional engagement with the topic.",
-        "Jupiter’s position supports expansion and policy reforms during this cycle."
-    ]
-    return random.choice(templates)
+def get_wikipedia_info(topic): try: return wikipedia.summary(topic, sentences=3) except: return "Wikipedia data not found."
 
-def generate_prediction(topic, context, wiki_info, astrology):
-    prompt = (
-        f"You are an expert analyst combining current news, historical context, and astrological patterns "
-        f"to forecast likely events related to the following topic.\n\n"
-        f"Topic: {topic}\n\n"
-        f"[News Context]\n{context}\n\n"
-        f"[Wikipedia Summary]\n{wiki_info}\n\n"
-        f"[Astrological Insight]\n{astrology}\n\n"
-        f"Using this information, provide a specific and realistic prediction for the next 7 to 21 days. "
-        f"Include likely developments, concrete actions by involved parties, possible outcomes, and any critical timing. "
-        f"Do not use vague language like 'stay alert' or 'be careful'. Make it sound like a real forecast.\n\n"
-        f"Your answer should include:\n"
-        f"- 1-2 short-term developments that may occur\n"
-        f"- Specific challenges and decisions\n"
-        f"- A likely overall outcome\n\n"
-        f"Write in a clear, confident, and analytical tone:"
-    )
+def get_astrology(): return random.choice([ "Mars influence suggests assertive events.", "Mercury retrograde may affect communication.", "Saturn might bring delays or discipline.", "Jupiter's alignment may expand impact.", "Lunar energy enhances emotions in decisions." ])
 
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a professional foresight analyst."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.75,
-        max_tokens=500
-    )
+def generate_prediction(topic, context, wiki, astro): prompt = f""" Analyze and predict events for the topic: {topic}. [News]\n{context} [Wikipedia]\n{wiki} [Astrology]\n{astro} Provide a clear, specific forecast for the next 7-21 days with: - Short-term developments - Decisions or challenges - Probable outcomes """ try: response = client.chat.completions.create( model="gpt-3.5-turbo", messages=[ {"role": "system", "content": "You are an expert prediction analyst."}, {"role": "user", "content": prompt} ], temperature=0.7, max_tokens=500 ) return response.choices[0].message.content.strip() except Exception as e: return f"Error generating prediction: {str(e)}"
 
-    return response.choices[0].message.content.strip()
+@app.route("/") def index(): predictions = [] for topic in TOPICS: news = get_news_articles(topic) wiki = get_wikipedia_info(topic) astro = get_astrology() prediction = generate_prediction(topic, news, wiki, astro) predictions.append({"topic": topic.title(), "prediction": prediction})
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.get_json()
-    topic = data.get("topic", "")
-    if not topic:
-        return jsonify({"error": "Topic is required"}), 400
+today = datetime.now().strftime("%B %d, %Y")
+return render_template("index.html", predictions=predictions, date=today)
 
-    context = get_google_news_articles(topic)
-    wiki_info = get_wikipedia_info(topic)
-    astrology = get_astrology_insight()
-    prediction = generate_prediction(topic, context, wiki_info, astrology)
+if name == "main": app.run(host="0.0.0.0", port=10000)
 
-    return jsonify({"prediction": prediction})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
