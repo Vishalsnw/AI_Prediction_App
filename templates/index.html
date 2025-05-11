@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily AI Predictions</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .prediction {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        .field {
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Predictions for Today</h1>
+    {% if predictions %}
+        {% for field, text in predictions.items() %}
+            <div class="prediction">
+                <div class="field">{{ field }}</div>
+                <p>{{ text }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No predictions generated yet. Please check back soon.</p>
+    {% endif %}
+</body>
+  </html>
