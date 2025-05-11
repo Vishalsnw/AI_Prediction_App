@@ -1,40 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Predictions</title>
+    <title>AI Daily Predictions</title>
     <meta charset="UTF-8">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
             margin: 40px;
-            background-color: #f4f4f4;
         }
         h1 {
             text-align: center;
+            color: #222;
         }
         .field-btn {
-            padding: 10px 20px;
-            background-color: #007bff;
+            padding: 12px 20px;
+            margin: 8px;
+            background-color: #0066cc;
             color: white;
-            margin: 5px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 15px;
         }
         .field-btn:hover {
-            background-color: #0056b3;
+            background-color: #004a99;
         }
         .result {
             margin-top: 30px;
-            padding: 20px;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+        }
+        .result h2 {
+            margin-bottom: 10px;
+            color: #444;
         }
     </style>
 </head>
 <body>
-    <h1>Click a Field to See AI Prediction</h1>
+    <h1>Click a Field to View AI Forecast</h1>
     <div id="buttons">
         {% for field in fields %}
             <button class="field-btn" onclick="getPrediction('{{ field }}')">{{ field }}</button>
@@ -45,18 +51,18 @@
     <script>
         function getPrediction(topic) {
             const resultDiv = document.getElementById("predictionResult");
-            resultDiv.innerHTML = "<p><strong>Loading prediction for " + topic + "...</strong></p>";
+            resultDiv.innerHTML = `<p><strong>Generating forecast for ${topic}...</strong></p>`;
             fetch("/predict/" + encodeURIComponent(topic))
                 .then(res => res.json())
                 .then(data => {
                     if (data.prediction) {
-                        resultDiv.innerHTML = "<h2>" + topic + "</h2><p>" + data.prediction + "</p>";
+                        resultDiv.innerHTML = `<h2>${topic}</h2><p>${data.prediction.replace(/\n/g, "<br><br>")}</p>`;
                     } else {
-                        resultDiv.innerHTML = "<p>Error loading prediction.</p>";
+                        resultDiv.innerHTML = "<p>Prediction failed to load.</p>";
                     }
                 })
                 .catch(() => {
-                    resultDiv.innerHTML = "<p>Server error. Try again.</p>";
+                    resultDiv.innerHTML = "<p>Server error. Try again later.</p>";
                 });
         }
     </script>
