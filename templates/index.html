@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Daily AI Predictions</title>
+    <title>AI Predictions</title>
     <meta charset="UTF-8">
     <style>
         body {
@@ -11,32 +11,54 @@
         }
         h1 {
             text-align: center;
-            color: #333;
         }
-        .prediction {
-            background: white;
+        .field-btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .field-btn:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
             padding: 20px;
-            margin-bottom: 20px;
+            background: white;
             border-radius: 10px;
             box-shadow: 0 0 8px rgba(0,0,0,0.1);
-        }
-        .field {
-            font-weight: bold;
-            color: #555;
         }
     </style>
 </head>
 <body>
-    <h1>AI Predictions for Today</h1>
-    {% if predictions %}
-        {% for field, text in predictions.items() %}
-            <div class="prediction">
-                <div class="field">{{ field }}</div>
-                <p>{{ text }}</p>
-            </div>
+    <h1>Click a Field to See AI Prediction</h1>
+    <div id="buttons">
+        {% for field in fields %}
+            <button class="field-btn" onclick="getPrediction('{{ field }}')">{{ field }}</button>
         {% endfor %}
-    {% else %}
-        <p>No predictions generated yet. Please check back soon.</p>
-    {% endif %}
+    </div>
+    <div id="predictionResult" class="result"></div>
+
+    <script>
+        function getPrediction(topic) {
+            const resultDiv = document.getElementById("predictionResult");
+            resultDiv.innerHTML = "<p><strong>Loading prediction for " + topic + "...</strong></p>";
+            fetch("/predict/" + encodeURIComponent(topic))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.prediction) {
+                        resultDiv.innerHTML = "<h2>" + topic + "</h2><p>" + data.prediction + "</p>";
+                    } else {
+                        resultDiv.innerHTML = "<p>Error loading prediction.</p>";
+                    }
+                })
+                .catch(() => {
+                    resultDiv.innerHTML = "<p>Server error. Try again.</p>";
+                });
+        }
+    </script>
 </body>
-  </html>
+</html>
