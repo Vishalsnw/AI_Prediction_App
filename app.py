@@ -1,13 +1,15 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from openai import OpenAI
 import wikipedia
 import random
+import requests
 import feedparser
 from newspaper import Article
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 
@@ -73,15 +75,18 @@ def generate_prediction(topic, context, wiki, astro):
 
 @app.route("/")
 def home():
-    predictions = {}
-    for field in fields:
-        news = get_news_articles(field)
-        wiki = get_wikipedia_summary(field)
-        astro = get_astrology_insight()
-        prediction = generate_prediction(field, news, wiki, astro)
-        predictions[field] = prediction
-    return render_template("index.html", predictions=predictions)
+    return render_template("index.html", fields=fields)
+
+@app.route("/predict/<topic>")
+def predict_topic(topic):
+    if topic not in fields:
+        return jsonify({"error": "Invalid topic"}), 400
+    news = get_news_articles(topic)
+    wiki = get_wikipedia_summary(topic)
+    astro = get_astrology_insight()
+    prediction = generate_prediction(topic, news, wiki, astro)
+    return jsonify({"prediction": prediction})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Render sets this
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
