@@ -2,127 +2,123 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Daily AI Forecasts</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prediction Dashboard</title>
     <style>
         body {
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb;
             margin: 0;
-            background: #f2f2f2;
-            color: #333;
+            padding: 0;
         }
 
         header {
-            background-color: #111827;
+            background-color: #1f2937;
             color: #ffffff;
-            padding: 20px 0;
+            padding: 20px;
             text-align: center;
-        }
-
-        h1 {
-            margin: 0;
             font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
 
-        .container {
+        main {
             max-width: 1000px;
-            margin: 40px auto;
-            padding: 0 20px;
+            margin: 20px auto;
+            padding: 20px;
         }
 
-        .buttons {
+        .intro {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 18px;
+            color: #374151;
+        }
+
+        .fields {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            margin-bottom: 30px;
+            gap: 10px;
         }
 
-        .field-btn {
-            background-color: #2563eb;
+        .field-button {
+            background-color: #3b82f6;
             color: white;
-            padding: 12px 18px;
-            margin: 8px;
             border: none;
+            padding: 12px 20px;
+            font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.2s;
+            transition: background-color 0.2s ease;
         }
 
-        .field-btn:hover {
-            background-color: #1e40af;
+        .field-button:hover {
+            background-color: #2563eb;
         }
 
-        .result {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .result h2 {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: #1e3a8a;
-        }
-
-        .result p {
-            font-size: 16px;
-            line-height: 1.6;
-        }
-
-        footer {
-            text-align: center;
+        .prediction-box {
+            margin-top: 40px;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             padding: 20px;
-            font-size: 14px;
-            color: #777;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
         }
 
-        @media (max-width: 600px) {
-            .field-btn {
-                width: 100%;
-                text-align: center;
-            }
+        .prediction-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        .prediction-content {
+            white-space: pre-wrap;
+            font-size: 16px;
+            color: #374151;
+            line-height: 1.6;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Daily AI Forecasts</h1>
-        <p style="margin-top: 5px;">Click on a field to get specific predictions</p>
-    </header>
+    <header>AI Prediction Dashboard</header>
+    <main>
+        <div class="intro">
+            <p>Click a category to view a professionally generated prediction for <strong>tomorrow</strong> using real-time news, Wikipedia insights, and astrology.</p>
+        </div>
 
-    <div class="container">
-        <div class="buttons">
+        <div class="fields">
             {% for field in fields %}
-                <button class="field-btn" onclick="getPrediction('{{ field }}')">{{ field }}</button>
+                <button class="field-button" onclick="getPrediction('{{ field }}')">{{ field }}</button>
             {% endfor %}
         </div>
 
-        <div id="predictionResult" class="result">
-            <p>Select a category to see today's forecast.</p>
+        <div class="prediction-box" id="prediction-box" style="display:none;">
+            <div class="prediction-title" id="prediction-title">Prediction</div>
+            <div class="prediction-content" id="prediction-content"></div>
         </div>
-    </div>
-
-    <footer>
-        &copy; 2025 AI Forecasts. Powered by OpenAI.
-    </footer>
+    </main>
 
     <script>
         function getPrediction(topic) {
-            const resultDiv = document.getElementById("predictionResult");
-            resultDiv.innerHTML = `<p><strong>Loading prediction for ${topic}...</strong></p>`;
-            fetch("/predict/" + encodeURIComponent(topic))
-                .then(res => res.json())
+            const box = document.getElementById('prediction-box');
+            const title = document.getElementById('prediction-title');
+            const content = document.getElementById('prediction-content');
+
+            title.innerText = "Loading...";
+            content.innerText = "";
+            box.style.display = "block";
+
+            fetch(`/predict/${topic}`)
+                .then(response => response.json())
                 .then(data => {
-                    if (data.prediction) {
-                        resultDiv.innerHTML = `<h2>${topic}</h2><p>${data.prediction.replace(/\n/g, "<br>")}</p>`;
-                    } else {
-                        resultDiv.innerHTML = "<p>Error loading prediction.</p>";
-                    }
+                    title.innerText = `${topic} - Tomorrow's Prediction`;
+                    content.innerText = data.prediction;
                 })
-                .catch(() => {
-                    resultDiv.innerHTML = "<p>Server error. Try again later.</p>";
+                .catch(error => {
+                    title.innerText = "Error";
+                    content.innerText = "Something went wrong while fetching the prediction.";
                 });
         }
     </script>
