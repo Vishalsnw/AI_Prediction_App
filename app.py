@@ -60,22 +60,24 @@ def get_astrology_insight():
 
 def generate_prediction(topic, context, wiki, astro):
     prompt = (
-        f"You are an expert global analyst and forecaster. Based on recent news, Wikipedia context, and astrology, provide a specific and realistic prediction for the next 7–14 days.\n\n"
-        f"Field: {topic}\n\n"
+        f"You are a professional global analyst. Based on the latest news, Wikipedia insights, and astrology, "
+        f"predict **what is most likely to happen tomorrow** in the field of {topic}.\n\n"
+        f"Include specific names (e.g., people, companies, countries, products, politicians) and detailed references.\n\n"
+        f"Structure the response into clear, concise **paragraphs** and use a professional tone.\n\n"
         f"[News Content]\n{context}\n\n"
         f"[Wikipedia Summary]\n{wiki}\n\n"
         f"[Astrology]\n{astro}\n\n"
-        f"Write a structured analysis that mentions specific names such as people, countries, politicians, companies, products, or regions. The forecast should be clearly formatted in paragraphs, with bold and detailed insight on what is likely to happen soon."
+        f"Forecast format:\n- Title: [Short title of the forecast]\n- Date: [Tomorrow's Date]\n- Paragraphs: Clearly formatted, insightful analysis with names and expected developments."
     )
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a professional analyst."},
+                {"role": "system", "content": "You are a professional forecaster who writes detailed daily predictions."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=700
+            max_tokens=800
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -108,7 +110,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=update_all_predictions, trigger="interval", hours=24)
 scheduler.start()
 
-# First load
+# Initial load
 update_all_predictions()
 
 if __name__ == "__main__":
