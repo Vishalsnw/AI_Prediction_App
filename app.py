@@ -10,27 +10,18 @@ from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 import datetime
 import json
-import urllib.parse
+import re
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 
-prediction_data = {"content": "Loading prediction..."}
+predictions_data = []
 
-# Secret Intelligence Simulation
-INTELLIGENCE_MODES = [
-    "AI Secret Agent Mode",
-    "Insider Leak Scan",
-    "Global Digital Pulse",
-    "Astro-War Alert",
-    "Deep Persona (Whistleblower)"
-]
-
-def get_news_articles(query, max_articles=2):
-    query_encoded = urllib.parse.quote(query)
-    rss_url = f"https://news.google.com/rss/search?q={query_encoded}&hl=en-IN&gl=IN"
+def get_news_articles(topic, max_articles=3):
+    query = topic.replace(" ", "+")
+    rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN"
     feed = feedparser.parse(rss_url)
     full_texts = ""
     count = 0
@@ -45,78 +36,97 @@ def get_news_articles(query, max_articles=2):
             continue
         if count >= max_articles:
             break
-    return full_texts or "No recent news found."
+    return full_texts or "No recent articles found."
 
 def get_wikipedia_summary(topic):
     try:
         return wikipedia.summary(topic, sentences=4)
     except:
-        return "No Wikipedia data found."
+        return "No Wikipedia info available."
 
-def get_astrology_insight():
-    choices = [
-        "Mars square Pluto indicates extreme tension or violent shifts.",
-        "Mercury retrograde may trigger miscommunication in leadership.",
-        "Lunar eclipse aligned with Uranus shows unpredictable public backlash.",
-        "Saturn in Pisces hints institutional secrets may leak.",
-        "Venus combust under Scorpio warns of scandals in finance or media."
-    ]
-    return random.choice(choices)
+def get_random_topics():
+    return random.sample([
+        "Ukraine war", "Stock market", "NASA", "Taiwan", "Elon Musk", "China", "AI regulations", 
+        "Bitcoin", "Israel Gaza", "OPEC", "Modi", "Trump", "Meta", "Earthquake", "Houthi", 
+        "Japan", "South China Sea", "North Korea", "Climate Change", "Cyber attack"
+    ], 3)
 
-def generate_prediction(context, wiki, astro):
-    prompt = (
-        "You are an elite AI analyst with access to secret intelligence, insider business leaks, trending social signals, and astrological patterns. "
-        "Based on all this, predict one sensational, realistic event that might happen TOMORROW. "
-        "Mention real names (politicians, countries, companies, products, regions). Be bold and structured. If no strong signal is found, say 'Nothing significant to predict for tomorrow.'\n\n"
-        f"[News Signals]\n{context}\n\n"
-        f"[Wikipedia Insight]\n{wiki}\n\n"
-        f"[Astrological Interpretation]\n{astro}\n\n"
-        "Your forecast must feel shocking yet plausible — written like a high-level intel leak or special ops briefing."
-    )
+def simulate_confidence_score(text):
+    score = random.randint(85, 98)
+    if "may" in text or "possible" in text:
+        score -= 5
+    return min(score, 99)
+
+def generate_prediction(topic, context, wiki):
+    prompt = f"""
+You are an elite global forecaster with access to insider intelligence, news scans, forums, and astrology.
+
+Your task: Predict one shocking or significant event that may happen TOMORROW. Mention specific names: companies, politicians, countries, or regions.
+
+Sources:
+- News Articles: {context}
+- Wikipedia Summary: {wiki}
+- Astrology Insight: {random.choice(["Mars transit causing tension", "Mercury retrograde may cause disruption", "Saturn influence on economic shifts"])}
+
+Rules:
+1. Predict ONLY if confident. Else respond: "Nothing significant to predict for tomorrow."
+2. Format professionally, like a headline + structured paragraphs.
+3. Use bold statements, thrilling tone, real names.
+
+Now, generate a bold, headline-worthy forecast.
+"""
     try:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are an elite secret analyst AI."},
+                {"role": "system", "content": "You are a global intelligence forecaster AI."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.8,
+            temperature=0.7,
             max_tokens=700
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"Error generating prediction: {e}"
 
-def scan_and_generate_prediction():
-    print(f"[{datetime.datetime.now()}] Scanning intelligence sources...")
+def update_predictions():
+    global predictions_data
+    predictions_data = []
+    print(f"[{datetime.datetime.now()}] Updating predictions...")
 
-    hot_topics = ["Elon Musk", "Ukraine", "Stock Market", "Apple", "Taiwan", "Cryptocurrency", "Israel", "Oil prices", "NATO", "Xi Jinping"]
-    selected_topic = random.choice(hot_topics)
+    for topic in get_random_topics():
+        news = get_news_articles(topic)
+        wiki = get_wikipedia_summary(topic)
+        result = generate_prediction(topic, news, wiki)
 
-    print(f"Selected dynamic topic: {selected_topic}")
-    news = get_news_articles(selected_topic)
-    wiki = get_wikipedia_summary(selected_topic)
-    astro = get_astrology_insight()
-    prediction = generate_prediction(news, wiki, astro)
+        if "nothing significant" in result.lower():
+            continue
 
-    global prediction_data
-    prediction_data["content"] = prediction
+        confidence = simulate_confidence_score(result)
+        if confidence >= 90:
+            predictions_data.append({
+                "topic": topic,
+                "text": result,
+                "confidence": confidence
+            })
+
+    print("Prediction update complete.")
 
 @app.route("/")
 def home():
-    return render_template("index.html", prediction=prediction_data["content"])
+    return render_template("index.html", predictions=predictions_data)
 
-@app.route("/predict")
-def predict():
-    return jsonify(prediction_data)
+@app.route("/api/predictions")
+def api_predictions():
+    return jsonify(predictions_data)
 
-# Schedule daily prediction
+# Daily background scheduler
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=scan_and_generate_prediction, trigger="interval", hours=24)
+scheduler.add_job(func=update_predictions, trigger="interval", hours=24)
 scheduler.start()
 
-# First-time prediction
-scan_and_generate_prediction()
+# Initial prediction run
+update_predictions()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
