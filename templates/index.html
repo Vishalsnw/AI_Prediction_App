@@ -1,49 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tomorrow's Bold Prediction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tomorrow's Predictions</title>
   <style>
     body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f0f2f5;
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0b0f19;
-      color: #f0f2f5;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
+      padding: 0;
     }
-    h1 {
-      color: #00ffcc;
-      font-size: 2rem;
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    .card {
+    header {
       background-color: #111827;
-      padding: 2rem;
-      border-radius: 16px;
-      box-shadow: 0 0 12px rgba(0, 255, 204, 0.15);
-      max-width: 800px;
-      width: 100%;
-      white-space: pre-wrap;
+      padding: 20px 0;
+      color: white;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    .footer {
-      margin-top: 3rem;
-      font-size: 0.9rem;
-      color: #888;
+    .container {
+      max-width: 960px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    }
+    h2 {
+      margin-top: 0;
+      color: #1f2937;
+    }
+    .prediction {
+      background: #f9fafb;
+      border-left: 6px solid #4f46e5;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.03);
+    }
+    .note {
+      text-align: center;
+      font-style: italic;
+      color: #6b7280;
     }
   </style>
 </head>
 <body>
-  <h1>Tomorrow's Secret Intelligence Forecast</h1>
-  <div class="card">
-    {{ prediction }}
-  </div>
-  <div class="footer">
-    AI-powered prediction engine | Simulated Intelligence Mode
+  <header>
+    <h1>Tomorrow's Explosive Predictions</h1>
+    <p>High-confidence AI-generated forecasts from real-world intelligence</p>
+  </header>
+  <div class="container">
+    {% if predictions and predictions|length > 0 %}
+      {% for item in predictions %}
+        {% if item.confidence >= 90 %}
+          <div class="prediction">
+            <h2>{{ item.title }}</h2>
+            <p>{{ item.text }}</p>
+            <p><strong>Confidence:</strong> {{ item.confidence }}%</p>
+            <p><strong>Accuracy Score:</strong> {{ item.accuracy }}%</p>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <p class="note">Nothing significant to predict for tomorrow.</p>
+    {% endif %}
   </div>
 </body>
 </html>
