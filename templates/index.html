@@ -1,57 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>AI Prediction for Tomorrow</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f4f8;
-            color: #333;
-            padding: 30px;
-            max-width: 800px;
-            margin: auto;
-        }
-        h1 {
-            text-align: center;
-            font-size: 2em;
-            color: #1a202c;
-        }
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-top: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        .date {
-            font-size: 0.9em;
-            color: #888;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .prediction {
-            white-space: pre-wrap;
-            line-height: 1.6;
-            font-size: 1.05em;
-        }
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 0.85em;
-            color: #999;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tomorrow's Bold Prediction</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0b0f19;
+      color: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    h1 {
+      color: #00ffcc;
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .card {
+      background-color: #111827;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 0 12px rgba(0, 255, 204, 0.15);
+      max-width: 800px;
+      width: 100%;
+      white-space: pre-wrap;
+    }
+    .footer {
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: #888;
+    }
+  </style>
 </head>
 <body>
-    <h1>AI Forecast: What May Happen Tomorrow</h1>
-    <div class="date">Prediction generated on {{ datetime.utcnow().strftime('%B %d, %Y') }}</div>
-    <div class="card">
-        <div class="prediction">{{ prediction }}</div>
-    </div>
-    <footer>
-        Powered by OpenAI | Automatically updated daily
-    </footer>
+  <h1>Tomorrow's Secret Intelligence Forecast</h1>
+  <div class="card">
+    {{ prediction }}
+  </div>
+  <div class="footer">
+    AI-powered prediction engine | Simulated Intelligence Mode
+  </div>
 </body>
 </html>
