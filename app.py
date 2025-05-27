@@ -1,22 +1,14 @@
 from flask import Flask, render_template, jsonify
-from openai import OpenAI
 import wikipedia
 import random
 import requests
 import feedparser
 from newspaper import Article
-import os
-from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 import datetime
 import json
-import re
 
-load_dotenv()
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
-
 predictions_data = []
 
 def get_news_articles(topic, max_articles=3):
@@ -58,6 +50,19 @@ def simulate_confidence_score(text):
     return min(score, 99)
 
 def generate_prediction(topic, context, wiki):
+    url = "https://deepseek-v31.p.rapidapi.com/"
+    headers = {
+        "Content-Type": "application/json",
+        "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
+        "x-rapidapi-key": "a531e727f3msh281ef1f076f7139p198608jsn82cfb1c7b6d0"
+    }
+
+    astrology = random.choice([
+        "Mars transit causing tension",
+        "Mercury retrograde may cause disruption",
+        "Saturn influence on economic shifts"
+    ])
+
     prompt = f"""
 You are an elite global forecaster with access to insider intelligence, news scans, forums, and astrology.
 
@@ -66,7 +71,7 @@ Your task: Predict one shocking or significant event that may happen TOMORROW. M
 Sources:
 - News Articles: {context}
 - Wikipedia Summary: {wiki}
-- Astrology Insight: {random.choice(["Mars transit causing tension", "Mercury retrograde may cause disruption", "Saturn influence on economic shifts"])}
+- Astrology Insight: {astrology}
 
 Rules:
 1. Predict ONLY if confident. Else respond: "Nothing significant to predict for tomorrow."
@@ -75,17 +80,18 @@ Rules:
 
 Now, generate a bold, headline-worthy forecast.
 """
+
+    payload = {
+        "model": "deepseek-v3",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+
     try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a global intelligence forecaster AI."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=700
-        )
-        return response.choices[0].message.content.strip()
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        result = response.json()
+        return result['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"Error generating prediction: {e}"
 
