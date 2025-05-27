@@ -7,9 +7,13 @@ from newspaper import Article
 from apscheduler.schedulers.background import BackgroundScheduler
 import datetime
 import json
+import os
 
 app = Flask(__name__)
 predictions_data = []
+
+RAPIDAPI_KEY = "a531e727f3msh281ef1f076f7139p198608jsn82cfb1c7b6d0"
+COPILOT_URL = "https://copilot5.p.rapidapi.com/copilot"
 
 def get_news_articles(topic, max_articles=3):
     query = topic.replace(" ", "+")
@@ -49,14 +53,7 @@ def simulate_confidence_score(text):
         score -= 5
     return min(score, 99)
 
-def generate_prediction(topic, context, wiki):
-    url = "https://deepseek-v31.p.rapidapi.com/"
-    headers = {
-        "Content-Type": "application/json",
-        "x-rapidapi-host": "deepseek-v31.p.rapidapi.com",
-        "x-rapidapi-key": "a531e727f3msh281ef1f076f7139p198608jsn82cfb1c7b6d0"
-    }
-
+def generate_prediction(topic, news, wiki):
     astrology = random.choice([
         "Mars transit causing tension",
         "Mercury retrograde may cause disruption",
@@ -69,7 +66,7 @@ You are an elite global forecaster with access to insider intelligence, news sca
 Your task: Predict one shocking or significant event that may happen TOMORROW. Mention specific names: companies, politicians, countries, or regions.
 
 Sources:
-- News Articles: {context}
+- News Articles: {news}
 - Wikipedia Summary: {wiki}
 - Astrology Insight: {astrology}
 
@@ -81,19 +78,25 @@ Rules:
 Now, generate a bold, headline-worthy forecast.
 """
 
+    headers = {
+        "Content-Type": "application/json",
+        "x-rapidapi-host": "copilot5.p.rapidapi.com",
+        "x-rapidapi-key": RAPIDAPI_KEY
+    }
+
     payload = {
-        "model": "deepseek-v3",
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
+        "message": prompt,
+        "conversation_id": None,
+        "mode": "CHAT",
+        "markdown": True
     }
 
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        response = requests.post(COPILOT_URL, headers=headers, json=payload)
         result = response.json()
-        return result['choices'][0]['message']['content'].strip()
+        return result['text'].strip()
     except Exception as e:
-        return f"Error generating prediction: {e}"
+        return f"Error: {e}"
 
 def update_predictions():
     global predictions_data
@@ -126,12 +129,12 @@ def home():
 def api_predictions():
     return jsonify(predictions_data)
 
-# Daily background scheduler
+# Schedule it to run daily
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=update_predictions, trigger="interval", hours=24)
 scheduler.start()
 
-# Initial prediction run
+# First run
 update_predictions()
 
 if __name__ == "__main__":
