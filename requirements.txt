@@ -7,3 +7,4 @@ gunicorn
 python-dotenv
 lxml[html_clean]
 apscheduler
+requests
