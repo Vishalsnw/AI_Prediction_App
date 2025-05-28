@@ -12,9 +12,11 @@ import os
 app = Flask(__name__)
 predictions_data = []
 
+# --- Config ---
 RAPIDAPI_KEY = "a531e727f3msh281ef1f076f7139p198608jsn82cfb1c7b6d0"
-COPILOT_URL = "https://copilot5.p.rapidapi.com/copilot"
+OPENAI_API_URL = "https://open-ai21.p.rapidapi.com/conversationllama"
 
+# --- News & Wiki ---
 def get_news_articles(topic, max_articles=3):
     query = topic.replace(" ", "+")
     rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN"
@@ -40,6 +42,7 @@ def get_wikipedia_summary(topic):
     except:
         return "No Wikipedia info available."
 
+# --- Random Topics ---
 def get_random_topics():
     return random.sample([
         "Ukraine war", "Stock market", "NASA", "Taiwan", "Elon Musk", "China", "AI regulations", 
@@ -47,12 +50,14 @@ def get_random_topics():
         "Japan", "South China Sea", "North Korea", "Climate Change", "Cyber attack"
     ], 3)
 
+# --- Confidence Simulator ---
 def simulate_confidence_score(text):
     score = random.randint(85, 98)
     if "may" in text or "possible" in text:
         score -= 5
     return min(score, 99)
 
+# --- Prediction Generator using OpenAI-style API ---
 def generate_prediction(topic, news, wiki):
     astrology = random.choice([
         "Mars transit causing tension",
@@ -80,24 +85,23 @@ Now, generate a bold, headline-worthy forecast.
 
     headers = {
         "Content-Type": "application/json",
-        "x-rapidapi-host": "copilot5.p.rapidapi.com",
+        "x-rapidapi-host": "open-ai21.p.rapidapi.com",
         "x-rapidapi-key": RAPIDAPI_KEY
     }
 
     payload = {
-        "message": prompt,
-        "conversation_id": None,
-        "mode": "CHAT",
-        "markdown": True
+        "messages": [{"role": "user", "content": prompt}],
+        "web_access": False
     }
 
     try:
-        response = requests.post(COPILOT_URL, headers=headers, json=payload)
+        response = requests.post(OPENAI_API_URL, headers=headers, json=payload)
         result = response.json()
-        return result['text'].strip()
+        return result.get("result", "").strip()
     except Exception as e:
         return f"Error: {e}"
 
+# --- Prediction Logic ---
 def update_predictions():
     global predictions_data
     predictions_data = []
@@ -121,6 +125,7 @@ def update_predictions():
 
     print("Prediction update complete.")
 
+# --- Routes ---
 @app.route("/")
 def home():
     return render_template("index.html", predictions=predictions_data)
@@ -129,7 +134,7 @@ def home():
 def api_predictions():
     return jsonify(predictions_data)
 
-# Schedule it to run daily
+# --- Scheduler ---
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=update_predictions, trigger="interval", hours=24)
 scheduler.start()
@@ -137,6 +142,7 @@ scheduler.start()
 # First run
 update_predictions()
 
+# --- App Runner ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
