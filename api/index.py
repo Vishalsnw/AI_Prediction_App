@@ -20,9 +20,8 @@ def deepseek_generate(prompt):
             {
                 "role": "system",
                 "content": (
-                    "You are a prophecy AI trained on books of predictions like Les Propheties, Baba Vanga, "
-                    "Edgar Cayce, Revelation, and modern psychic guides. You combine ancient foresight with present data. "
-                    "Predict boldly but clearly for the common person."
+                    "You are a prophetic AI inspired by Nostradamus, Baba Vanga, and psychic visionaries. "
+                    "You study signs from news, history, symbols, energy, and sacred books. Predict with mystical clarity."
                 )
             },
             {"role": "user", "content": prompt}
@@ -37,11 +36,11 @@ def deepseek_generate(prompt):
 
 def find_best_topic():
     prompt = """
-Search the world silently. Read the signs, energy shifts, trends, and headlines.
+Search the Earth, skies, and signals. Observe where tomorrow's fate is shifting.
 
-Choose ONE topic where the future is shifting rapidly — something worthy of tomorrow’s powerful prediction.
+Return ONE topic (3 to 6 words) where powerful energy is gathering.
 
-Answer with 3 to 6 words max.
+Example format: "Oil conflict Iran", "US-China cyber tension"
 """
     return deepseek_generate(prompt).strip()
 
@@ -50,15 +49,15 @@ def get_news_headlines(topic):
         rss_url = f"https://news.google.com/rss/search?q={topic.replace(' ', '+')}&hl=en-IN&gl=IN"
         feed = feedparser.parse(rss_url)
         headlines = "\n".join([entry.title for entry in feed.entries[:5]])
-        return headlines if headlines else "No recent headlines."
+        return headlines or "No recent headlines."
     except:
-        return "News data unreadable."
+        return "No recent headlines."
 
 def get_wikipedia_summary(topic):
     try:
         return wikipedia.summary(topic, sentences=2)
     except:
-        return "No Wikipedia data."
+        return "No Wikipedia summary available."
 
 def generate_prediction():
     topic = find_best_topic()
@@ -66,42 +65,33 @@ def generate_prediction():
     wiki = get_wikipedia_summary(topic)
 
     prompt = f"""
-You are a prophecy AI trained on books like:
-- Les Propheties (Nostradamus)
-- Baba Vanga predictions
-- Edgar Cayce readings
-- Book of Revelation
-- Psychic prediction guides like "The Premonition Code" and "Psychic Witch"
+Topic of Interest: "{topic}"
 
-With all this wisdom and real-world news knowledge, you must now make ONE bold but understandable prediction for tomorrow.
+News Headlines:
+{news}
 
-Topic: {topic}
-News: {news}
-Wikipedia: {wiki}
+Wikipedia Info:
+{wiki}
 
-TASK:
-Predict tomorrow’s most likely event linked to this topic.
-Your format:
-- **HEADLINE:** A bold summary
-- **Why it will happen:** Simple, clear logic from news + intuition
-- **Who will be impacted:** Mention real names/companies/countries
-- **Timing:** Why tomorrow or next 24 hours
-- If no prediction: write “No significant signs for tomorrow.”
+TASK: Based on ancient prophecy wisdom and current signs, predict ONE major event that may happen TOMORROW.
 
-Avoid vague words like "maybe" or "possibly".
-Use human-friendly, mysterious but simple language.
+Give result like:
+**HEADLINE:** Short, powerful line
+**Why:** In simple language
+**Who is affected:** Real names/places
+**Timing:** Why it will happen tomorrow
+If nothing major seen, just say: "No signs for tomorrow."
 """
     prediction = deepseek_generate(prompt)
 
-    if "no significant" not in prediction.lower():
-        return [{
-            "title": topic,
-            "text": prediction.strip(),
-            "confidence": 91,
-            "accuracy": 92
-        }]
-    else:
+    if "no signs" in prediction.lower():
         return []
+
+    return [{
+        "title": topic,
+        "text": prediction.strip(),
+        "confidence": 91
+    }]
 
 @app.route("/")
 def home():
