@@ -1,134 +1,26 @@
-// === File: templates/index.html ===
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🌐 Tomorrow's Prediction</title>
-  <script defer src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 text-gray-900 font-sans">
-  <main class="max-w-2xl mx-auto py-10 px-4">
-    <h1 class="text-3xl font-bold text-center mb-6">🌐 Tomorrow's Prediction</h1>
-    {% if predictions %}
-      {% for pred in predictions %}
-        <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
-          <h2 class="text-xl font-semibold text-blue-700 mb-2">{{ pred.headline }}</h2>
-          <p class="text-gray-700 whitespace-pre-line">{{ pred.reasoning }}</p>
-          <div class="mt-4 text-sm text-gray-500">Confidence: {{ pred.confidence }}%</div>
+<html lang="en" class="bg-gray-950 text-white">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>🔮 Tomorrow's Prediction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-2xl w-full space-y-6 bg-gray-900 p-6 rounded-2xl shadow-xl border border-gray-700">
+      <h1 class="text-2xl font-bold text-purple-300 text-center">🔮 Tomorrow's Prophecy</h1>
+
+      {% if predictions %}
+        {% for p in predictions %}
+        <div class="bg-gray-800 p-4 rounded-lg space-y-2">
+          <p class="text-sm text-gray-400">🧠 Topic Studied: <span class="text-white font-medium">{{ p.title }}</span></p>
+          <div class="text-lg font-semibold text-yellow-300 whitespace-pre-line">{{ p.text }}</div>
+          <p class="text-sm text-green-400 mt-2">📊 Confidence: {{ p.confidence }}%</p>
         </div>
-      {% endfor %}
-    {% else %}
-      <p class="text-center text-gray-500">No significant predictions for tomorrow.</p>
-    {% endif %}
-  </main>
-</body>
+        {% endfor %}
+      {% else %}
+        <div class="text-center text-gray-400 italic">No strong signals detected for tomorrow. Rest while the stars realign...</div>
+      {% endif %}
+    </div>
+  </body>
 </html>
-
-
-// === File: api/index.py ===
-from flask import Flask, render_template, jsonify
-import wikipedia
-import requests
-import feedparser
-import os
-
-app = Flask(__name__, template_folder="../templates")
-
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-0e8fe679610b4b718e553f4fed7e3792")
-
-CANDIDATE_TOPICS = [
-    "China Taiwan conflict", "Middle East oil crisis", "India elections",
-    "US Federal Reserve", "Nvidia stock", "Artificial Intelligence laws",
-    "Bitcoin regulation", "SpaceX launch", "Cyberwarfare", "Nuclear threat"
-]
-
-def get_news_headlines(topic):
-    try:
-        rss_url = f"https://news.google.com/rss/search?q={topic.replace(' ', '+')}&hl=en-IN&gl=IN"
-        feed = feedparser.parse(rss_url)
-        return "\n".join([entry.title for entry in feed.entries[:3]]) or "No recent headlines found."
-    except:
-        return "No headlines available."
-
-def get_wikipedia_summary(topic):
-    try:
-        return wikipedia.summary(topic, sentences=3)
-    except:
-        return "No Wikipedia summary available."
-
-def generate_prediction(topic):
-    news = get_news_headlines(topic)
-    wiki = get_wikipedia_summary(topic)
-
-    prompt = f"""
-You are a geopolitical and financial prediction expert.
-
-TASK: Predict one highly likely and impactful event that may happen TOMORROW related to the topic: "{topic}".
-
-Use these sources:
-- News headlines: {news}
-- Wikipedia: {wiki}
-
-Rules:
-- Start with a bold HEADLINE.
-- Add structured, brief reasoning.
-- Mention real people, places, or companies.
-- Avoid vague terms like \"maybe\" or \"possibly\".
-- If no prediction, say: \"Nothing significant to predict for tomorrow.\"
-"""
-
-    headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "model": "deepseek-chat",
-        "temperature": 0.3,
-        "messages": [
-            {"role": "system", "content": "You are an accurate forecaster."},
-            {"role": "user", "content": prompt}
-        ]
-    }
-
-    try:
-        res = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, json=payload)
-        res.raise_for_status()
-        data = res.json()
-        return data["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"Prediction error: {e}"
-
-@app.route("/")
-def home():
-    # Study candidate topics and pick most active one
-    ranked = []
-    for topic in CANDIDATE_TOPICS:
-        news = get_news_headlines(topic)
-        if "No recent headlines" not in news:
-            ranked.append((topic, len(news.splitlines())))
-
-    if not ranked:
-        return render_template("index.html", predictions=[])
-
-    best_topic = sorted(ranked, key=lambda x: x[1], reverse=True)[0][0]
-    prediction_text = generate_prediction(best_topic)
-
-    if "nothing significant" in prediction_text.lower():
-        return render_template("index.html", predictions=[])
-
-    headline, _, reasoning = prediction_text.partition("**Logic and Justification:**")
-    headline = headline.replace("**HEADLINE:", "").strip("* ")
-
-    return render_template("index.html", predictions=[{
-        "headline": headline,
-        "reasoning": reasoning.strip(),
-        "confidence": 90
-    }])
-
-@app.route("/api/ping")
-def ping():
-    return jsonify({"status": "ok"})
-
-# No main(), no handler -- for Vercel to pick `app`
