@@ -2,14 +2,12 @@ from flask import Flask, render_template, jsonify
 import wikipedia
 import requests
 import feedparser
-from newspaper import Article
 from apscheduler.schedulers.background import BackgroundScheduler
 import datetime
 import os
 
 app = Flask(__name__, template_folder="../templates")
 
-# === CONFIG ===
 DEEPSEEK_API_KEY = "sk-0e8fe679610b4b718e553f4fed7e3792"
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
@@ -21,24 +19,14 @@ TOPICS = [
     "Bitcoin regulation", "SpaceX launch", "Cyberwarfare", "Nuclear threat"
 ]
 
-def get_news_articles(topic, max_articles=3):
+def get_news_headlines(topic, max_articles=3):
     query = topic.replace(" ", "+")
     rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN"
     feed = feedparser.parse(rss_url)
-    full_texts = ""
-    count = 0
-    for entry in feed.entries:
-        try:
-            article = Article(entry.link)
-            article.download()
-            article.parse()
-            full_texts += f"TITLE: {article.title}\n{article.text}\n\n"
-            count += 1
-        except:
-            continue
-        if count >= max_articles:
-            break
-    return full_texts or "No recent articles found."
+    texts = ""
+    for entry in feed.entries[:max_articles]:
+        texts += f"TITLE: {entry.title}\nSUMMARY: {entry.summary}\n\n"
+    return texts or "No recent articles found."
 
 def get_wikipedia_summary(topic):
     try:
@@ -92,7 +80,7 @@ def update_predictions():
     print(f"[{datetime.datetime.now()}] Updating predictions...")
 
     for topic in TOPICS:
-        news = get_news_articles(topic)
+        news = get_news_headlines(topic)
         wiki = get_wikipedia_summary(topic)
         result = generate_prediction(topic, news, wiki)
 
@@ -105,8 +93,6 @@ def update_predictions():
             "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         })
 
-    print("Prediction update complete.")
-
 @app.route("/")
 def home():
     return render_template("index.html", predictions=predictions_data)
@@ -115,19 +101,15 @@ def home():
 def api_predictions():
     return jsonify(predictions_data)
 
-# Scheduler for local dev only
-if not os.environ.get("VERCEL"):
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(func=update_predictions, trigger="interval", hours=24)
-    scheduler.start()
-    update_predictions()
-
-# For Vercel cold starts
+# Skip background scheduler for Vercel
 @app.before_first_request
 def cold_start_update():
-    if not predictions_data:
-        update_predictions()
+    try:
+        if not predictions_data:
+            update_predictions()
+    except Exception as e:
+        print(f"[ERROR] Cold start: {e}")
 
-# Required export for Vercel
+# Required handler for Vercel
 def handler(environ, start_response):
     return app(environ, start_response)
