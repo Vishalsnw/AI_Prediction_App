@@ -3,7 +3,6 @@ import wikipedia
 import requests
 import feedparser
 import datetime
-import os
 
 app = Flask(__name__, template_folder="../templates")
 
@@ -90,5 +89,4 @@ def home():
 def api_predictions():
     return jsonify({"message": "Use / route to view predictions."})
 
-def handler(environ, start_response):
-    return app(environ, start_response)
+# ✅ DO NOT DEFINE `handler` at all.
