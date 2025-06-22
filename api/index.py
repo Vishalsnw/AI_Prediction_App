@@ -17,7 +17,14 @@ def deepseek_generate(prompt):
         "model": "deepseek-chat",
         "temperature": 0.3,
         "messages": [
-            {"role": "system", "content": "You are a super-intelligent forecasting AI that finds and predicts important events."},
+            {
+                "role": "system",
+                "content": (
+                    "You are a prophecy AI trained on books of predictions like Les Propheties, Baba Vanga, "
+                    "Edgar Cayce, Revelation, and modern psychic guides. You combine ancient foresight with present data. "
+                    "Predict boldly but clearly for the common person."
+                )
+            },
             {"role": "user", "content": prompt}
         ]
     }
@@ -30,11 +37,11 @@ def deepseek_generate(prompt):
 
 def find_best_topic():
     prompt = """
-Think like an expert journalist, military strategist, and financial analyst combined.
+Search the world silently. Read the signs, energy shifts, trends, and headlines.
 
-TASK: Analyze global trends and identify ONE topic that may have a HIGH IMPACT TOMORROW.
+Choose ONE topic where the future is shifting rapidly — something worthy of tomorrow’s powerful prediction.
 
-Only return the topic in 5 words or less. No extra explanation.
+Answer with 3 to 6 words max.
 """
     return deepseek_generate(prompt).strip()
 
@@ -45,13 +52,13 @@ def get_news_headlines(topic):
         headlines = "\n".join([entry.title for entry in feed.entries[:5]])
         return headlines if headlines else "No recent headlines."
     except:
-        return "No recent headlines."
+        return "News data unreadable."
 
 def get_wikipedia_summary(topic):
     try:
         return wikipedia.summary(topic, sentences=2)
     except:
-        return "No Wikipedia summary available."
+        return "No Wikipedia data."
 
 def generate_prediction():
     topic = find_best_topic()
@@ -59,29 +66,39 @@ def generate_prediction():
     wiki = get_wikipedia_summary(topic)
 
     prompt = f"""
-Topic selected: "{topic}"
+You are a prophecy AI trained on books like:
+- Les Propheties (Nostradamus)
+- Baba Vanga predictions
+- Edgar Cayce readings
+- Book of Revelation
+- Psychic prediction guides like "The Premonition Code" and "Psychic Witch"
 
-Sources:
-- News: {news}
-- Wikipedia: {wiki}
+With all this wisdom and real-world news knowledge, you must now make ONE bold but understandable prediction for tomorrow.
 
-TASK: Predict if something impactful may happen TOMORROW regarding this topic.
+Topic: {topic}
+News: {news}
+Wikipedia: {wiki}
 
-If yes, provide:
-- A bold HEADLINE
-- Clear logic and justification
-- Mention real names/places/companies
+TASK:
+Predict tomorrow’s most likely event linked to this topic.
+Your format:
+- **HEADLINE:** A bold summary
+- **Why it will happen:** Simple, clear logic from news + intuition
+- **Who will be impacted:** Mention real names/companies/countries
+- **Timing:** Why tomorrow or next 24 hours
+- If no prediction: write “No significant signs for tomorrow.”
 
-If not, say: "Nothing significant to predict for tomorrow."
+Avoid vague words like "maybe" or "possibly".
+Use human-friendly, mysterious but simple language.
 """
     prediction = deepseek_generate(prompt)
 
-    if "nothing significant" not in prediction.lower():
+    if "no significant" not in prediction.lower():
         return [{
             "title": topic,
-            "text": prediction,
-            "confidence": 90,
-            "accuracy": 90
+            "text": prediction.strip(),
+            "confidence": 91,
+            "accuracy": 92
         }]
     else:
         return []
