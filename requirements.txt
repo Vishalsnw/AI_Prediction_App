@@ -2,4 +2,3 @@ Flask
 wikipedia
 requests
 feedparser
-apscheduler
