@@ -1,6 +1,5 @@
 from flask import Flask, render_template, jsonify
 import wikipedia
-import random
 import requests
 import feedparser
 from newspaper import Article
@@ -13,10 +12,17 @@ app = Flask(__name__)
 predictions_data = []
 
 # --- Config ---
-RAPIDAPI_KEY = "a531e727f3msh281ef1f076f7139p198608jsn82cfb1c7b6d0"
-OPENAI_API_URL = "https://open-ai21.p.rapidapi.com/conversationllama"
+DEEPSEEK_API_KEY = "sk-0e8fe679610b4b718e553f4fed7e3792"
+DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
-# --- News & Wiki ---
+# --- Topics (Fixed, No Randomness) ---
+TOPICS = [
+    "China Taiwan conflict", "Middle East oil crisis", "India elections",
+    "US Federal Reserve", "Nvidia stock", "Artificial Intelligence laws",
+    "Bitcoin regulation", "SpaceX launch", "Cyberwarfare", "Nuclear threat"
+]
+
+# --- News ---
 def get_news_articles(topic, max_articles=3):
     query = topic.replace(" ", "+")
     rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN"
@@ -36,78 +42,64 @@ def get_news_articles(topic, max_articles=3):
             break
     return full_texts or "No recent articles found."
 
+# --- Wikipedia ---
 def get_wikipedia_summary(topic):
     try:
         return wikipedia.summary(topic, sentences=4)
     except:
         return "No Wikipedia info available."
 
-# --- Random Topics ---
-def get_random_topics():
-    return random.sample([
-        "Ukraine war", "Stock market", "NASA", "Taiwan", "Elon Musk", "China", "AI regulations", 
-        "Bitcoin", "Israel Gaza", "OPEC", "Modi", "Trump", "Meta", "Earthquake", "Houthi", 
-        "Japan", "South China Sea", "North Korea", "Climate Change", "Cyber attack"
-    ], 3)
-
-# --- Confidence Simulator ---
-def simulate_confidence_score(text):
-    score = random.randint(85, 98)
-    if "may" in text or "possible" in text:
-        score -= 5
-    return min(score, 99)
-
-# --- Prediction Generator using OpenAI-style API ---
+# --- DeepSeek Prediction ---
 def generate_prediction(topic, news, wiki):
-    astrology = random.choice([
-        "Mars transit causing tension",
-        "Mercury retrograde may cause disruption",
-        "Saturn influence on economic shifts"
-    ])
-
     prompt = f"""
-You are an elite global forecaster with access to insider intelligence, news scans, forums, and astrology.
+You are a geopolitical and financial prediction expert.
 
-Your task: Predict one shocking or significant event that may happen TOMORROW. Mention specific names: companies, politicians, countries, or regions.
+TASK: Predict one highly likely and impactful event that may happen TOMORROW related to the topic: "{topic}".
 
-Sources:
-- News Articles: {news}
-- Wikipedia Summary: {wiki}
-- Astrology Insight: {astrology}
+Base your answer only on verified data and current intelligence from:
+- News: {news}
+- Wikipedia: {wiki}
 
-Rules:
-1. Predict ONLY if confident. Else respond: "Nothing significant to predict for tomorrow."
-2. Format professionally, like a headline + structured paragraphs.
-3. Use bold statements, thrilling tone, real names.
+RULES:
+- Start with a bold HEADLINE.
+- Follow it with short structured reasoning in bullet or paragraph form.
+- Mention real names (countries, companies, leaders).
+- Avoid vague phrases (e.g., "may", "possibly", "could").
+- If no significant forecast can be made with confidence, return exactly: "Nothing significant to predict for tomorrow."
 
-Now, generate a bold, headline-worthy forecast.
+Return only the forecast. No extra comments.
 """
 
     headers = {
-        "Content-Type": "application/json",
-        "x-rapidapi-host": "open-ai21.p.rapidapi.com",
-        "x-rapidapi-key": RAPIDAPI_KEY
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Content-Type": "application/json"
     }
 
     payload = {
-        "messages": [{"role": "user", "content": prompt}],
-        "web_access": False
+        "model": "deepseek-chat",
+        "temperature": 0.3,
+        "messages": [
+            {"role": "system", "content": "You are an accurate forecaster."},
+            {"role": "user", "content": prompt}
+        ]
     }
 
     try:
-        response = requests.post(OPENAI_API_URL, headers=headers, json=payload)
+        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
+        response.raise_for_status()
         result = response.json()
-        return result.get("result", "").strip()
+        text = result["choices"][0]["message"]["content"].strip()
+        return text
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error generating prediction: {str(e)}"
 
-# --- Prediction Logic ---
+# --- Prediction Update Logic ---
 def update_predictions():
     global predictions_data
     predictions_data = []
     print(f"[{datetime.datetime.now()}] Updating predictions...")
 
-    for topic in get_random_topics():
+    for topic in TOPICS:
         news = get_news_articles(topic)
         wiki = get_wikipedia_summary(topic)
         result = generate_prediction(topic, news, wiki)
@@ -115,13 +107,11 @@ def update_predictions():
         if "nothing significant" in result.lower():
             continue
 
-        confidence = simulate_confidence_score(result)
-        if confidence >= 90:
-            predictions_data.append({
-                "topic": topic,
-                "text": result,
-                "confidence": confidence
-            })
+        predictions_data.append({
+            "topic": topic,
+            "text": result,
+            "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
 
     print("Prediction update complete.")
 
@@ -139,7 +129,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=update_predictions, trigger="interval", hours=24)
 scheduler.start()
 
-# First run
+# Initial Prediction Run
 update_predictions()
 
 # --- App Runner ---
