@@ -2,7 +2,6 @@ from flask import Flask, render_template, jsonify
 import wikipedia
 import requests
 import feedparser
-from apscheduler.schedulers.background import BackgroundScheduler
 import datetime
 import os
 
@@ -19,37 +18,39 @@ TOPICS = [
     "Bitcoin regulation", "SpaceX launch", "Cyberwarfare", "Nuclear threat"
 ]
 
-def get_news_headlines(topic, max_articles=3):
-    query = topic.replace(" ", "+")
-    rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN"
-    feed = feedparser.parse(rss_url)
-    texts = ""
-    for entry in feed.entries[:max_articles]:
-        texts += f"TITLE: {entry.title}\nSUMMARY: {entry.summary}\n\n"
-    return texts or "No recent articles found."
+def get_news_headlines(topic):
+    try:
+        rss_url = f"https://news.google.com/rss/search?q={topic.replace(' ', '+')}&hl=en-IN&gl=IN"
+        feed = feedparser.parse(rss_url)
+        return "\n".join([f"{entry.title}" for entry in feed.entries[:3]]) or "No recent headlines found."
+    except:
+        return "No headlines available."
 
 def get_wikipedia_summary(topic):
     try:
-        return wikipedia.summary(topic, sentences=4)
+        return wikipedia.summary(topic, sentences=3)
     except:
-        return "No Wikipedia info available."
+        return "No Wikipedia summary available."
 
-def generate_prediction(topic, news, wiki):
+def generate_prediction(topic):
+    news = get_news_headlines(topic)
+    wiki = get_wikipedia_summary(topic)
+
     prompt = f"""
 You are a geopolitical and financial prediction expert.
 
 TASK: Predict one highly likely and impactful event that may happen TOMORROW related to the topic: "{topic}".
 
-Base your answer only on verified data and current intelligence from:
-- News: {news}
+Use these sources:
+- News headlines: {news}
 - Wikipedia: {wiki}
 
-RULES:
+Rules:
 - Start with a bold HEADLINE.
-- Follow it with short structured reasoning.
-- Mention real names (countries, companies, leaders).
-- Avoid vague phrases (e.g., "may", "possibly", "could").
-- If no significant forecast can be made with confidence, return exactly: "Nothing significant to predict for tomorrow."
+- Add structured, brief reasoning.
+- Mention real people, places, or companies.
+- Avoid vague terms like "maybe" or "possibly".
+- If no prediction, say: "Nothing significant to predict for tomorrow."
 """
 
     headers = {
@@ -67,49 +68,31 @@ RULES:
     }
 
     try:
-        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
-        response.raise_for_status()
-        result = response.json()
-        return result["choices"][0]["message"]["content"].strip()
+        res = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
+        res.raise_for_status()
+        data = res.json()
+        return data["choices"][0]["message"]["content"]
     except Exception as e:
-        return f"Error generating prediction: {str(e)}"
-
-def update_predictions():
-    global predictions_data
-    predictions_data = []
-    print(f"[{datetime.datetime.now()}] Updating predictions...")
-
-    for topic in TOPICS:
-        news = get_news_headlines(topic)
-        wiki = get_wikipedia_summary(topic)
-        result = generate_prediction(topic, news, wiki)
-
-        if "nothing significant" in result.lower():
-            continue
-
-        predictions_data.append({
-            "topic": topic,
-            "text": result,
-            "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        })
+        return f"Prediction error: {e}"
 
 @app.route("/")
 def home():
+    global predictions_data
+    if not predictions_data:
+        predictions_data = []
+        for topic in TOPICS:
+            prediction = generate_prediction(topic)
+            if "nothing significant" not in prediction.lower():
+                predictions_data.append({
+                    "topic": topic,
+                    "text": prediction,
+                    "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                })
     return render_template("index.html", predictions=predictions_data)
 
 @app.route("/api/predictions")
 def api_predictions():
     return jsonify(predictions_data)
 
-# Skip background scheduler for Vercel
-@app.before_first_request
-def cold_start_update():
-    try:
-        if not predictions_data:
-            update_predictions()
-    except Exception as e:
-        print(f"[ERROR] Cold start: {e}")
-
-# Required handler for Vercel
 def handler(environ, start_response):
     return app(environ, start_response)
