@@ -1,3 +1,4 @@
+# === File: api/index.py ===
 from flask import Flask, render_template, jsonify
 import wikipedia
 import requests
@@ -8,6 +9,7 @@ app = Flask(__name__, template_folder="../templates")
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-0e8fe679610b4b718e553f4fed7e3792")
 
+# --- Helper: Ask DeepSeek ---
 def deepseek_generate(prompt):
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
@@ -15,41 +17,33 @@ def deepseek_generate(prompt):
     }
     payload = {
         "model": "deepseek-chat",
-        "temperature": 0.3,
+        "temperature": 0.2,
         "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are a prophetic AI inspired by Nostradamus, Baba Vanga, and psychic visionaries. "
-                    "You study signs from news, history, symbols, energy, and sacred books. Predict with mystical clarity."
-                )
-            },
+            {"role": "system", "content": "You are a mystical prediction engine with powers of Nostradamus and Baba Vanga. You foresee very specific future events."},
             {"role": "user", "content": prompt}
         ]
     }
     try:
-        res = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, json=payload, timeout=25)
+        res = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, json=payload, timeout=20)
         res.raise_for_status()
         return res.json()["choices"][0]["message"]["content"]
     except Exception as e:
         return f"Prediction error: {e}"
 
+# --- Dynamic Topic Selection ---
 def find_best_topic():
     prompt = """
-Search the Earth, skies, and signals. Observe where tomorrow's fate is shifting.
-
-Return ONE topic (3 to 6 words) where powerful energy is gathering.
-
-Example format: "Oil conflict Iran", "US-China cyber tension"
-"""
+    TASK: Scan global tensions, disasters, and events. Pick ONE high-impact topic for tomorrow.
+    FORMAT: Return only the topic in 5 words or less. Do NOT include any explanation.
+    """
     return deepseek_generate(prompt).strip()
 
+# --- Context Collection ---
 def get_news_headlines(topic):
     try:
-        rss_url = f"https://news.google.com/rss/search?q={topic.replace(' ', '+')}&hl=en-IN&gl=IN"
-        feed = feedparser.parse(rss_url)
-        headlines = "\n".join([entry.title for entry in feed.entries[:5]])
-        return headlines or "No recent headlines."
+        url = f"https://news.google.com/rss/search?q={topic.replace(' ', '+')}&hl=en-IN&gl=IN"
+        feed = feedparser.parse(url)
+        return "\n".join([entry.title for entry in feed.entries[:5]]) or "No recent headlines."
     except:
         return "No recent headlines."
 
@@ -57,42 +51,42 @@ def get_wikipedia_summary(topic):
     try:
         return wikipedia.summary(topic, sentences=2)
     except:
-        return "No Wikipedia summary available."
+        return "No Wikipedia info."
 
+# --- Prophecy Generation ---
 def generate_prediction():
     topic = find_best_topic()
-    news = get_news_headlines(topic)
+    headlines = get_news_headlines(topic)
     wiki = get_wikipedia_summary(topic)
 
     prompt = f"""
-Topic of Interest: "{topic}"
+TOPIC: {topic}
 
-News Headlines:
-{news}
+TASK: Predict a clear, specific, and shocking event that may occur TOMORROW.
+Use these:
+- News headlines: {headlines}
+- Wikipedia summary: {wiki}
 
-Wikipedia Info:
-{wiki}
-
-TASK: Based on ancient prophecy wisdom and current signs, predict ONE major event that may happen TOMORROW.
-
-Give result like:
-**HEADLINE:** Short, powerful line
-**Why:** In simple language
-**Who is affected:** Real names/places
-**Timing:** Why it will happen tomorrow
-If nothing major seen, just say: "No signs for tomorrow."
+Rules:
+- Begin with a prophecy-style HEADLINE.
+- Describe clearly what may happen, where, and to whom.
+- Use powerful, mystical, or symbolic tones, like Nostradamus.
+- Mention real countries, people, companies, or cities.
+- End with celestial sign or timing.
+- If no prediction possible, say: "Nothing significant to predict tomorrow."
 """
-    prediction = deepseek_generate(prompt)
+    text = deepseek_generate(prompt)
 
-    if "no signs" in prediction.lower():
+    if "nothing significant" in text.lower():
         return []
+    else:
+        return [{
+            "headline": text.split("\n")[0].strip("* "),
+            "reasoning": "\n".join(text.split("\n")[1:]).strip(),
+            "confidence": 91
+        }]
 
-    return [{
-        "title": topic,
-        "text": prediction.strip(),
-        "confidence": 91
-    }]
-
+# --- Routes ---
 @app.route("/")
 def home():
     predictions = generate_prediction()
@@ -101,3 +95,4 @@ def home():
 @app.route("/api/ping")
 def ping():
     return jsonify({"status": "ok"})
+    
