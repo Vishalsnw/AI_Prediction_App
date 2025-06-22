@@ -1,4 +1,4 @@
-Flask
-wikipedia
+Flask==2.2.5
 requests
+wikipedia
 feedparser
