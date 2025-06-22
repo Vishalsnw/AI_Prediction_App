@@ -1,10 +1,6 @@
-flask
-openai
-feedparser
+Flask
 wikipedia
-newspaper3k
-gunicorn
-python-dotenv
-lxml[html_clean]
-apscheduler
 requests
+feedparser
+newspaper3k
+apscheduler
