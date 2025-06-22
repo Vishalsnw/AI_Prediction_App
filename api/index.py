@@ -10,8 +10,6 @@ app = Flask(__name__, template_folder="../templates")
 DEEPSEEK_API_KEY = "sk-0e8fe679610b4b718e553f4fed7e3792"
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
-predictions_data = []
-
 TOPICS = [
     "China Taiwan conflict", "Middle East oil crisis", "India elections",
     "US Federal Reserve", "Nvidia stock", "Artificial Intelligence laws",
@@ -77,22 +75,20 @@ Rules:
 
 @app.route("/")
 def home():
-    global predictions_data
-    if not predictions_data:
-        predictions_data = []
-        for topic in TOPICS:
-            prediction = generate_prediction(topic)
-            if "nothing significant" not in prediction.lower():
-                predictions_data.append({
-                    "topic": topic,
-                    "text": prediction,
-                    "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                })
+    predictions_data = []
+    for topic in TOPICS:
+        result = generate_prediction(topic)
+        if "nothing significant" not in result.lower():
+            predictions_data.append({
+                "topic": topic,
+                "text": result,
+                "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
     return render_template("index.html", predictions=predictions_data)
 
 @app.route("/api/predictions")
 def api_predictions():
-    return jsonify(predictions_data)
+    return jsonify({"message": "Use / route to view predictions."})
 
 def handler(environ, start_response):
     return app(environ, start_response)
