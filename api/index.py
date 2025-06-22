@@ -3,11 +3,11 @@ import wikipedia
 import requests
 import feedparser
 import datetime
+import os
 
 app = Flask(__name__, template_folder="../templates")
 
-DEEPSEEK_API_KEY = "sk-0e8fe679610b4b718e553f4fed7e3792"
-DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-0e8fe679610b4b718e553f4fed7e3792")  # Add your key here or from Vercel Env Vars
 
 TOPICS = [
     "China Taiwan conflict", "Middle East oil crisis", "India elections",
@@ -65,7 +65,7 @@ Rules:
     }
 
     try:
-        res = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
+        res = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, json=payload)
         res.raise_for_status()
         data = res.json()
         return data["choices"][0]["message"]["content"]
@@ -79,14 +79,15 @@ def home():
         result = generate_prediction(topic)
         if "nothing significant" not in result.lower():
             predictions_data.append({
-                "topic": topic,
+                "title": topic,
                 "text": result,
-                "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                "confidence": 90,
+                "accuracy": 90
             })
     return render_template("index.html", predictions=predictions_data)
 
-@app.route("/api/predictions")
-def api_predictions():
-    return jsonify({"message": "Use / route to view predictions."})
+@app.route("/api/ping")
+def ping():
+    return jsonify({"status": "ok"})
 
-# ✅ DO NOT DEFINE `handler` at all.
+# DO NOT define `handler` or `main()` — let Vercel pick `app` itself
